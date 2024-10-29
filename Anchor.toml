@@ -4,14 +4,14 @@
 seeds = false
 skip-lint = false
 
-[programs.localnet]
-presale = "8wDUqAZzTJ1ZHbGDMMU15yjiifdCyasAnNtX9CZqUBYg"
+[programs.devnet]
+presale = "EghJH9jtVPonaHu8Re2S7BWJTJgjqCUsHAE2funNULTL"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "/root/.config/solana/id.json"
 
 [scripts]
