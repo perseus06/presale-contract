@@ -6,8 +6,9 @@ use anchor_spl::{
     token::{ self, Mint, Token, TokenAccount, Transfer }
 };
 use solana_program::{program::invoke, system_instruction};
+use std::mem::size_of;
 
-pub fn token_sale(ctx: Context<SaleManagement>, amount: u64) -> Result<()> {
+pub fn token_sale(ctx: Context<SaleManagement>, amount: u64, staked_period:u8) -> Result<()> {
     let accts = ctx.accounts;
 
     require!(accts.presale.status, PresaleError::NotLive);
@@ -17,7 +18,7 @@ pub fn token_sale(ctx: Context<SaleManagement>, amount: u64) -> Result<()> {
 
     if sale_type {
         // send token from token vault account to user's token account
-        require!(amount < accts.presale.token_amount, PresaleError::TooMuchAmount);
+        require!(amount < accts.presale.token_amount, PresaleError::InsufficientBalance);
         accts.presale.token_amount -= amount;
         msg!("token amount {:?}", amount);
 
@@ -82,32 +83,127 @@ pub fn token_sale(ctx: Context<SaleManagement>, amount: u64) -> Result<()> {
         
         let token_amount = (amount as u128 * 10u64.pow(decimal.into()) as u128 / accts.presale.token_price as u128) as u64;
 
-        require!(token_amount < accts.presale.token_amount, PresaleError::TooMuchAmount);
+        require!(token_amount < accts.presale.token_amount, PresaleError::InsufficientBalance);
         accts.presale.token_amount -= token_amount;
 
-        // send token from token vault account to user's token account
-        let (_, bump) = Pubkey::find_program_address(&[PRESALE_SEED], ctx.program_id);
-        let vault_seeds = &[PRESALE_SEED, &[bump]];
-        let signer = &[&vault_seeds[..]];
+        let current_timestamp = Clock::get()?.unix_timestamp;
 
-        // Transfer tokens from bridge to receiver
-        let cpi_accounts = Transfer {
-            from: accts.token_vault_account.to_account_info(),
-            to: accts.token_account.to_account_info(),
-            authority: accts.presale.to_account_info(),
-        };
-
-        let cpi_context = CpiContext::new(accts.token_program.to_account_info(), cpi_accounts);
-        token::transfer(cpi_context.with_signer(signer), token_amount)?;
+        match staked_period {
+            3_u8 => {
+                require!(!accts.user_info.stake_status_3m, PresaleError::AlreadyStaking);
+                accts.user_info.stake_status_3m = true;
+                accts.user_info.stake_amount_3m = token_amount;
+                accts.user_info.stake_start_time_3m = current_timestamp;
+            },
+            6_u8 => {
+                // Logic for 6-month staking period
+                require!(!accts.user_info.stake_status_6m, PresaleError::AlreadyStaking);
+                accts.user_info.stake_status_6m = true;
+                accts.user_info.stake_amount_6m = token_amount;
+                accts.user_info.stake_start_time_6m = current_timestamp;
+            }, 
+            9_u8 => {
+                // Logic for 9-month staking period
+                require!(!accts.user_info.stake_status_9m, PresaleError::AlreadyStaking);
+                accts.user_info.stake_status_9m = true;
+                accts.user_info.stake_amount_9m = token_amount;
+                accts.user_info.stake_start_time_9m = current_timestamp;
+            },
+            12_u8 => {
+                // Logic for 12-month staking period
+                require!(!accts.user_info.stake_status_12m, PresaleError::AlreadyStaking);
+                accts.user_info.stake_status_12m = true;
+                accts.user_info.stake_amount_12m = token_amount;
+                accts.user_info.stake_start_time_12m = current_timestamp;
+            },
+            _ => return Err(PresaleError::InvalidStakingPeriod.into()), // Handle unsupported values
+        }
     }
 
     Ok(())
 }
 
+
+pub fn claim_staked_token(ctx: Context<SaleManagement>, staked_period:u8) -> Result<()> {
+    let accts = ctx.accounts;
+
+    require!(accts.presale.status, PresaleError::NotLive);
+    let current_timestamp = Clock::get()?.unix_timestamp;
+    let mut token_amount = 0;
+
+    match staked_period {
+        3_u8 => {
+            require!(accts.user_info.stake_status_3m, PresaleError::NotStaking);
+            require!(current_timestamp  - accts.user_info.stake_start_time_3m >  3 * 30 * 3600 * 24, PresaleError::NotStaking);
+            require!(accts.user_info.stake_amount_3m != 0, PresaleError::AlreadyClaim);
+
+            token_amount = accts.user_info.stake_amount_3m * 105 / 100;
+            accts.user_info.stake_amount_3m = 0;
+            accts.user_info.stake_start_time_3m = current_timestamp;
+        },
+        6_u8 => {
+            // Logic for 6-month staking period
+            require!(accts.user_info.stake_status_6m, PresaleError::NotStaking);
+            require!(current_timestamp  - accts.user_info.stake_start_time_3m > 6 * 30 * 3600 * 24, PresaleError::NotStaking);
+            require!(accts.user_info.stake_amount_6m != 0, PresaleError::AlreadyClaim);
+
+            token_amount = accts.user_info.stake_amount_3m * 110 / 100;
+            accts.user_info.stake_amount_6m = 0;
+            accts.user_info.stake_start_time_6m = current_timestamp;
+        }, 
+        9_u8 => {
+            // Logic for 9-month staking period
+            require!(accts.user_info.stake_status_9m, PresaleError::NotStaking);
+            require!(current_timestamp  - accts.user_info.stake_start_time_3m > 9 * 30 * 3600 * 24, PresaleError::NotStaking);
+            require!(accts.user_info.stake_amount_9m != 0, PresaleError::AlreadyClaim);
+
+            token_amount = accts.user_info.stake_amount_3m * 115 / 100;
+            accts.user_info.stake_amount_9m = 0;
+            accts.user_info.stake_start_time_9m = current_timestamp;
+        },
+        12_u8 => {
+            // Logic for 12-month staking period
+            require!(accts.user_info.stake_status_12m, PresaleError::NotStaking);
+            require!(current_timestamp  - accts.user_info.stake_start_time_3m > 12 * 30 * 3600 * 24, PresaleError::NotStaking);
+            require!(accts.user_info.stake_amount_12m != 0, PresaleError::AlreadyClaim);
+
+            token_amount = accts.user_info.stake_amount_3m * 120 / 100;
+            accts.user_info.stake_amount_12m = 0;
+            accts.user_info.stake_start_time_12m = current_timestamp;
+        },
+        _ => return Err(PresaleError::InvalidStakingPeriod.into()), // Handle unsupported values
+    }
+
+    // send token from token vault account to user's token account
+    let (_, bump) = Pubkey::find_program_address(&[PRESALE_SEED], ctx.program_id);
+    let vault_seeds = &[PRESALE_SEED, &[bump]];
+    let signer = &[&vault_seeds[..]];
+
+    // Transfer tokens from bridge to receiver
+    let cpi_accounts = Transfer {
+        from: accts.token_vault_account.to_account_info(),
+        to: accts.token_account.to_account_info(),
+        authority: accts.presale.to_account_info(),
+    };
+
+    let cpi_context = CpiContext::new(accts.token_program.to_account_info(), cpi_accounts);
+    token::transfer(cpi_context.with_signer(signer), token_amount)?;
+
+    Ok(())
+}
 #[derive(Accounts)]
 pub struct SaleManagement<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = user,
+        seeds = [USER_INFO_SEED, user.key().as_ref()],
+        bump,
+        space = 8 + size_of::<UserInfo>()
+    )]
+    pub user_info: Account<'info, UserInfo>,
 
     #[account(
         mut, 
@@ -145,3 +241,4 @@ pub struct SaleManagement<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
+

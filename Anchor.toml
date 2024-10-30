@@ -5,13 +5,17 @@ seeds = false
 skip-lint = false
 
 [programs.devnet]
-presale = "EghJH9jtVPonaHu8Re2S7BWJTJgjqCUsHAE2funNULTL"
+presale = "BTNaNtGC5sTfNUbusLBRuMViPT2wNBvkzCem5HEDBUMM"
+
+[programs.mainnet]
+presale = "D1z7DrkYk3Xvnyz9BdToK5zPnHSKHXL3RTUQktHusiif"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
+# cluster = "https://mainnet.helius-rpc.com/?api-key=888deea7-ded4-44d9-8906-e1776e2a8f4e"
 wallet = "/root/.config/solana/id.json"
 
 [scripts]

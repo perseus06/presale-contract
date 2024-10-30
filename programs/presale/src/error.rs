@@ -11,15 +11,24 @@ pub enum PresaleError {
     #[msg("The current sale type should be public.")]
     PublicSale, 
 
-    #[msg("The token amount is too much than balance.")]
-    TooMuchAmount,
-
     #[msg("The contract's status should be live.")]
     NotLive,
 
     #[msg("The amount is not enoguh.")]
     InsufficientBalance,
 
-    #[msg("The token is not matched")]
-    DisMatchToken
+    #[msg("The token is not matched.")]
+    DisMatchToken,
+
+    #[msg("You already staked token in this period.")]
+    AlreadyStaking,
+
+    #[msg("The staking period is invalid.")]
+    InvalidStakingPeriod,
+
+    #[msg("You didn't stake in this period.")]
+    NotStaking, 
+
+    #[msg("You already claimed token in this period.")]
+    AlreadyClaim
 }

@@ -9,7 +9,7 @@ pub use constants::*;
 use instructions::*;
 pub use state::*;
 
-declare_id!("EghJH9jtVPonaHu8Re2S7BWJTJgjqCUsHAE2funNULTL");
+declare_id!("BTNaNtGC5sTfNUbusLBRuMViPT2wNBvkzCem5HEDBUMM");
 
 #[program]
 pub mod presale {
@@ -39,11 +39,19 @@ pub mod presale {
         instructions::update_rate(ctx, rate)
     }
 
-    pub fn token_sale(ctx: Context<SaleManagement>, amount: u64) -> Result<()> {
-        instructions::token_sale(ctx, amount)
+    pub fn token_sale(ctx: Context<SaleManagement>, amount: u64, staked_period: u8) -> Result<()> {
+        instructions::token_sale(ctx, amount, staked_period)
     }
 
-    pub fn withdraw_token(ctx: Context<WithdrawToken>, amount: u64) -> Result<()> {
+    pub fn claim_staked_token(ctx: Context<SaleManagement>, staked_period: u8) -> Result<()> {
+        instructions::claim_staked_token(ctx, staked_period)
+    }
+
+    pub fn deposit_token(ctx: Context<ManageToken>, amount: u64) -> Result<()> {
+        instructions::deposit_token(ctx, amount)
+    }
+
+    pub fn withdraw_token(ctx: Context<ManageToken>, amount: u64) -> Result<()> {
         instructions::withdraw_token(ctx, amount)
     }
 

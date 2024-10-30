@@ -45,6 +45,9 @@ describe("presale", () => {
       ],
       program.programId
     );
+    // const presaleData = await program.account.presale.fetch(presale);
+    // const tokenAmount = presaleData.tokenAmount;
+    // console.log(presaleData);
   });
   it("Is initialized!", async () => {
     try {
@@ -93,6 +96,7 @@ describe("presale", () => {
       console.log(error);
     }
   });
+  
   it("token sale for presale", async() => {
     try {
       let amount = 100000000; // 0.1 sol in private sale
@@ -100,11 +104,23 @@ describe("presale", () => {
         tokenMint,
         user.publicKey
       );
+      const staked_period = 3;
+
+      const [userInfo, userInfoBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [
+          Buffer.from("USER_INFO_SEED"),
+          user.publicKey.toBuffer()
+
+        ],
+        program.programId
+      )
 
       const tx = await program.rpc.tokenSale(
-        new anchor.BN(amount), {
+        new anchor.BN(amount),
+        staked_period, {
           accounts: {
             user: user.publicKey,
+            userInfo,
             presale,
             vault,
             tokenMint,
@@ -122,6 +138,47 @@ describe("presale", () => {
       console.log(error);
     }
   });
+  it("claim 3 months token for presale", async() => {
+    try {
+      const userTokenAccount = await getAssociatedTokenAddress(
+        tokenMint,
+        user.publicKey
+      );
+      const staked_period = 3;
+
+      const [userInfo, userInfoBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [
+          Buffer.from("USER_INFO_SEED"),
+          user.publicKey.toBuffer()
+
+        ],
+        program.programId
+      )
+
+      const tx = await program.rpc.claimStakedToken(
+        staked_period, {
+          accounts: {
+            user: user.publicKey,
+            userInfo,
+            presale,
+            vault,
+            tokenMint,
+            tokenAccount:userTokenAccount,
+            tokenVaultAccount: tokenVault,
+            tokenProgram:TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId
+          },
+          signers: [user]
+        }
+      );
+      console.log("tx->", tx);
+    } catch (error) {
+      console.log(error);
+    }
+  });
+
+
   it("convert sale into public", async() => {
     try {
       const tx = await program.rpc.updateSaleType(
@@ -164,11 +221,23 @@ describe("presale", () => {
         user.publicKey
       );
 
+      const [userInfo, userInfoBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [
+          Buffer.from("USER_INFO_SEED"),
+          user.publicKey.toBuffer()
+
+        ],
+        program.programId
+      );
+      const stakingPeriod = 0;
+
       const tx = await program.rpc.tokenSale(
-        new anchor.BN(amount), {
+        new anchor.BN(amount), 
+        stakingPeriod,{
           accounts: {
             user: user.publicKey,
             presale,
+            userInfo,
             vault,
             tokenMint,
             tokenAccount:userTokenAccount,
@@ -238,5 +307,5 @@ describe("presale", () => {
     } catch (error) {
       console.log(error);
     }
-  })
+  });
 });

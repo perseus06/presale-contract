@@ -117,12 +117,31 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     Ok(())
 }
 
-pub fn withdraw_token(ctx: Context<WithdrawToken>, amount: u64) -> Result<()> {
+pub fn deposit_token(ctx: Context<ManageToken>, amount: u64) -> Result<()> {
     let accts = ctx.accounts;
 
     require!(accts.presale.owner == accts.owner.key(), PresaleError::InvalidOwner);
     require!(accts.presale.token == accts.token_mint.key(), PresaleError::DisMatchToken);
 
+    // send presale token to the contract
+    let cpi_accounts = Transfer {
+        from: accts.token_account.to_account_info(),
+        to: accts.token_vault_account.to_account_info(),
+        authority: accts.owner.to_account_info(),
+    };
+    let cpi_context = CpiContext::new(accts.token_program.to_account_info(), cpi_accounts);
+    let _ = token::transfer(cpi_context, amount);
+    accts.presale.token_amount += amount;
+
+    Ok(())
+}
+
+
+pub fn withdraw_token(ctx: Context<ManageToken>, amount: u64) -> Result<()> {
+    let accts = ctx.accounts;
+
+    require!(accts.presale.owner == accts.owner.key(), PresaleError::InvalidOwner);
+    require!(accts.presale.token == accts.token_mint.key(), PresaleError::DisMatchToken);
 
     let balance = accts.presale.token_amount;
     require!(amount <= balance, PresaleError::InsufficientBalance);
@@ -222,7 +241,7 @@ pub struct Withdraw<'info> {
 }
 
 #[derive(Accounts)]
-pub struct WithdrawToken<'info> {
+pub struct ManageToken<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
