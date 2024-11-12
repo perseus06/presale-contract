@@ -9,6 +9,22 @@ The smart contract facilitates a structured token presale with integrated stakin
 During the private sale phase, users can purchase tokens with SOL, and their acquired tokens will automatically be staked in a time-locked staking pool, yielding rewards based on different lock-up periods. 
 In the public sale phase, users can directly purchase tokens without the staking requirement.
 
+## Run the contract
+
+Please make sure that you have installed rust, anchor and solana on your machine
+
+### Build Contract
+
+  anchor build
+
+### Deploy Contract
+
+  anchor deploy
+
+### Test Contract
+
+  anchor run test
+  
 ## Key Features
 
 ### Token Minting and Contract Initialization
