@@ -15,15 +15,15 @@ Please make sure that you have installed rust, anchor and solana on your machine
 
 ### Build Contract
 
-  anchor build
+    anchor build
 
 ### Deploy Contract
 
-  anchor deploy
+    anchor deploy
 
 ### Test Contract
 
-  anchor run test
+    anchor run test
   
 ## Key Features
 
